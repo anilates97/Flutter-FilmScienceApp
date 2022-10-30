@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "48774266775",
+    "project_id": "movie-science",
+    "storage_bucket": "movie-science.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:48774266775:android:a52b92074bfd78700d8ed2",
+        "android_client_info": {
+          "package_name": "com.example.movie_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "48774266775-5nhhkcol0go22rg5kmrbpq7jqtskh2d8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.movie_app",
+            "certificate_hash": "51399d18d3d09bdb6af3ca6cd74b1abbf5f9dbfb"
+          }
+        },
+        {
+          "client_id": "48774266775-otsir4l7knnues2tn0kdpdt17sqe1nbe.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDDZLQAT_NDk-_KbPb27J358-26Q9Yoh84"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "48774266775-otsir4l7knnues2tn0kdpdt17sqe1nbe.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
