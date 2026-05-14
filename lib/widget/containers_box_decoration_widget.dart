@@ -1,11 +1,11 @@
 import 'package:flutter/cupertino.dart';
 
 class ContainerElements extends StatelessWidget {
-  Color textColor;
-  Color containerColor;
-  String movieText;
-  double height;
-  double width;
+  final Color textColor;
+  final Color containerColor;
+  final String movieText;
+  final double height;
+  final double width;
   ContainerElements(
       {Key? key,
       required this.height,

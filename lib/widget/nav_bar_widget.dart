@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movie_app/api/utils.dart';
 import 'package:movie_app/model/movie_app_detail.dart';
 import 'package:movie_app/pages/fav_page.dart';
-import 'package:movie_app/pages/movie_detail_page.dart';
 import 'package:movie_app/pages/signin_page.dart';
 import 'package:movie_app/pages/signup_page.dart';
 import 'package:movie_app/services/auth_service.dart';
@@ -13,7 +12,7 @@ import 'package:persistent_bottom_nav_bar/persistent-tab-view.dart';
 import '../pages/home_page.dart';
 
 class NavBarWidget extends ConsumerStatefulWidget {
-  String? bookID;
+  final String? bookID;
   NavBarWidget({Key? key, this.bookID}) : super(key: key);
 
   @override
@@ -21,7 +20,7 @@ class NavBarWidget extends ConsumerStatefulWidget {
 }
 
 class _NavBarWidgetState extends ConsumerState<NavBarWidget> {
-  FirebaseAuthService _authService = FirebaseAuthService();
+  final FirebaseAuthService _authService = FirebaseAuthService();
   late List<Widget> screensWithLogin = [];
 
   late HomePage homePage;
@@ -36,10 +35,10 @@ class _NavBarWidgetState extends ConsumerState<NavBarWidget> {
   @override
   void initState() {
     super.initState();
-    homePage = HomePage();
+    homePage = const HomePage();
     favPage = FavPage(MovieDetail());
-    signInPage = SignInPage();
-    signupPage = SignupPage();
+    signInPage = const SignInPage();
+    signupPage = const SignupPage();
 
     _controllerLogin = PersistentTabController(initialIndex: currentIndex);
 
@@ -101,14 +100,16 @@ class _NavBarWidgetState extends ConsumerState<NavBarWidget> {
           onGenerateRoute: (settings) {
             switch (settings.name) {
               case '/HomePage':
-                return CupertinoPageRoute(builder: (_) => HomePage());
+                return CupertinoPageRoute(builder: (_) => const HomePage());
               case '/FavPage':
                 return CupertinoPageRoute(
                     builder: (_) => FavPage(MovieDetail()));
+              default:
+                return CupertinoPageRoute(builder: (_) => const HomePage());
             }
           },
         ),
-        icon: Icon(Icons.home),
+        icon: const Icon(Icons.home),
       ),
     ];
   }

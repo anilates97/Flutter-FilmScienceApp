@@ -1,15 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/src/foundation/key.dart';
-import 'package:flutter/src/widgets/framework.dart';
-import 'package:movie_app/api/utils.dart';
 import 'package:movie_app/services/database_service.dart';
+import 'package:movie_app/theme/app_theme.dart';
+import 'package:movie_app/widget/cinematic_widgets.dart';
 
 import '../model/reply.dart';
 import '../widget/build_reply_widget.dart';
 
 class RepliesPage extends StatefulWidget {
-  String movieID;
+  final String movieID;
   RepliesPage(this.movieID, {Key? key}) : super(key: key);
 
   @override
@@ -17,58 +16,73 @@ class RepliesPage extends StatefulWidget {
 }
 
 class _RepliesPageState extends State<RepliesPage> {
-  FirebaseDatabaseService _databaseService = FirebaseDatabaseService();
-  IconData icon = Icons.favorite_border;
+  final FirebaseDatabaseService _databaseService = FirebaseDatabaseService();
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: StreamBuilder<DocumentSnapshot>(
-          stream: _databaseService.readReplyOnMovie(widget.movieID),
-          builder: (context, AsyncSnapshot<DocumentSnapshot> snapshot) {
-            if (snapshot.hasData) {
-              var rep = snapshot.data!.get('reply') as List<dynamic>;
-              //Map<String, dynamic> replikler = rep;
-              List<Reply> reps = [];
+    return CinematicScaffold(
+      appBar: AppBar(
+        title: const Text("Quotes"),
+        leading: IconButton(
+          onPressed: () => Navigator.maybePop(context),
+          icon: const Icon(Icons.arrow_back),
+        ),
+      ),
+      child: StreamBuilder<DocumentSnapshot>(
+        stream: _databaseService.readReplyOnMovie(widget.movieID),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return StateMessage(
+              icon: Icons.error_outline,
+              title: "Quotes could not load",
+              message: snapshot.error.toString(),
+            );
+          }
+          if (!snapshot.hasData) {
+            return const LoadingPosterGrid();
+          }
+          if (!snapshot.data!.exists) {
+            return const StateMessage(
+              icon: Icons.format_quote_outlined,
+              title: "No quotes yet",
+              message: "Add the first memorable line from favorites.",
+            );
+          }
 
-              rep.forEach(
-                (element) {
-                  Reply reply = Reply.fromJson(element);
+          final data = snapshot.data!.data() as Map<String, dynamic>?;
+          final rep = data?['reply'] as List<dynamic>? ?? [];
+          final movieName = data?['movieName']?.toString() ?? "Movie";
+          final replies = rep
+              .map((element) => Reply.fromJson(
+                    Map<String, dynamic>.from(element as Map),
+                  ))
+              .where((reply) => reply.reply.trim().isNotEmpty)
+              .toList();
 
-                  reps.add(reply);
-                },
+          if (replies.isEmpty) {
+            return StateMessage(
+              icon: Icons.format_quote_outlined,
+              title: "No quotes yet",
+              message: "$movieName has no saved replies.",
+            );
+          }
+
+          return ListView.separated(
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+            itemBuilder: (context, index) {
+              return BuildReplyWidget(
+                likes: replies[index].vote,
+                reply: replies[index].reply,
+                movieID: snapshot.data!.get('id').toString(),
+                movieName: movieName,
+                userId: replies[index].userId,
               );
-
-              print("REPS LENGTH: ${reps.length - 1}");
-
-              var data = snapshot.data!.get('reply');
-
-              List<dynamic> replies = [];
-              replies.add(data);
-              return Container(
-                color: MovieUtils.colorLight,
-                child: ListView.separated(
-                    itemBuilder: (context, index) {
-                      return BuildReplyWidget(
-                        likes: reps[index].vote,
-                        reply: reps[index].reply,
-                        movieID: snapshot.data!.get('id').toString(),
-                      );
-                    },
-                    separatorBuilder: (context, index) {
-                      return Container(
-                        width: double.infinity,
-                        height: 2,
-                        color: Colors.black,
-                      );
-                    },
-                    itemCount: reps.length),
-              );
-            } else {
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
-            }
-          }),
+            },
+            separatorBuilder: (context, index) => const SizedBox(height: 14),
+            itemCount: replies.length,
+          );
+        },
+      ),
     );
   }
 }
@@ -84,9 +98,8 @@ class _ChangeButtonState extends State<ChangeButton> {
   IconData icon = Icons.favorite_border;
   @override
   Widget build(BuildContext context) {
-    print("Change button build çalıştıo");
     return IconButton(
-      icon: Icon(icon),
+      icon: Icon(icon, color: AppColors.gold),
       onPressed: () {
         setState(() {
           icon = Icons.favorite;

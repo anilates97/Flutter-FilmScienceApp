@@ -1,32 +1,42 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 
 abstract class AuthService {
-  Future signUp(String email, String sifre);
-  Future signIn(String email, String sifre);
+  Future<bool> signUp(String email, String sifre);
+  Future<bool> signIn(String email, String sifre);
   Future signOut();
 }
 
 class FirebaseAuthService implements AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   @override
-  Future signUp(String email, String sifre) async {
+  Future<bool> signUp(String email, String sifre) async {
     try {
-      UserCredential userCredential = await FirebaseAuth.instance
+      await FirebaseAuth.instance
           .createUserWithEmailAndPassword(email: email, password: sifre);
+      return true;
     } on FirebaseAuthException catch (e) {
       if (e.code == 'weak-password') {
-        print('The password provided is too weak.');
+        debugPrint('The password provided is too weak.');
       } else if (e.code == 'email-already-in-use') {
-        print('The account already exists for that email.');
+        debugPrint('The account already exists for that email.');
       }
+      return false;
     } catch (e) {
-      print(e);
+      debugPrint(e.toString());
+      return false;
     }
   }
 
   @override
-  Future signIn(String email, String sifre) async {
-    await _auth.signInWithEmailAndPassword(email: email, password: sifre);
+  Future<bool> signIn(String email, String sifre) async {
+    try {
+      await _auth.signInWithEmailAndPassword(email: email, password: sifre);
+      return true;
+    } on FirebaseAuthException catch (e) {
+      debugPrint(e.toString());
+      return false;
+    }
   }
 
   String? getCurrentUser() {

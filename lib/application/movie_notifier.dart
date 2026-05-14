@@ -56,7 +56,7 @@ class MovieNotifier extends StateNotifier<MovieState> {
       final movies = await _movieRepository.fetchMovies();
       state = MovieLoaded(movies);
     } catch (e) {
-      state = const MovieError("Filmleri yüklerken hata meydana geldi");
+      state = MovieError("Filmleri yüklerken hata meydana geldi: $e");
     }
   }
 
@@ -67,8 +67,7 @@ class MovieNotifier extends StateNotifier<MovieState> {
 
       state = MovieLoaded(movies);
     } catch (e) {
-      state =
-          const MovieError("Sıradaki filmleri yüklerken hata meydana geldi");
+      state = MovieError("Sıradaki filmleri yüklerken hata meydana geldi: $e");
     }
   }
 
@@ -79,8 +78,7 @@ class MovieNotifier extends StateNotifier<MovieState> {
 
       state = MovieLoaded(movies);
     } catch (e) {
-      state =
-          const MovieError("Sıradaki filmleri yüklerken hata meydana geldi");
+      state = MovieError("Önceki filmleri yüklerken hata meydana geldi: $e");
     }
   }
 }

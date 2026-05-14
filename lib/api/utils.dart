@@ -1,33 +1,37 @@
 import 'package:flutter/cupertino.dart';
+import 'package:movie_app/api/tmdb_config.dart';
+import 'package:movie_app/theme/app_theme.dart';
 
 class MovieUtils {
-  static String API_KEY = "2af521b95bc66d438a7085aa9e8a02db";
-  static String BASE_URL =
+  static const String API_KEY = TmdbConfig.apiKey;
+  static const String BASE_URL =
       "https://api.themoviedb.org/3/movie/top_rated?api_key=";
 
-  static String PAGE = "&page=";
+  static const String PAGE = "&page=";
 
-  static String IMAGE_PATH = "https://image.tmdb.org/t/p/w500";
+  static const String IMAGE_PATH = "https://image.tmdb.org/t/p/w500";
 
-  static String TOP_RATED = BASE_URL + API_KEY;
+  static const String TOP_RATED = BASE_URL + API_KEY;
 
-  static String VIDEO_URL = "https://api.themoviedb.org/3/movie/";
-  static String VIDEO_PATH = "/videos?api_key=$API_KEY";
+  static const String VIDEO_URL = "https://api.themoviedb.org/3/movie/";
+  static const String VIDEO_PATH = "/videos?api_key=$API_KEY";
 
-  static String VIDEO_YOUTUBE = "https://www.youtube.com/watch?v=";
+  static const String VIDEO_YOUTUBE = "https://www.youtube.com/watch?v=";
 
-  static String MOVIE_DETAIL = "https://api.themoviedb.org/3/movie/";
-  static String MOVIE_DETAIL_PATH = "?api_key=$API_KEY";
+  static const String MOVIE_DETAIL = "https://api.themoviedb.org/3/movie/";
+  static const String MOVIE_DETAIL_PATH = "?api_key=$API_KEY";
+
+  static String? imageUrl(String? path) {
+    if (path == null || path.isEmpty) return null;
+    return IMAGE_PATH + path;
+  }
 
   // COLORS
 
-  static Color colorLight = const Color(0xFF8FE3CF);
-  static Color colorDark = const Color(0xFF002B5B);
+  static Color colorLight = AppColors.gold;
+  static Color colorDark = AppColors.black;
 
-  static Color colorThird = const Color(0xFF256D85);
+  static Color colorThird = AppColors.surfaceHigh;
 
-  static Color colorFourth = const Color(0xFF2B4865);
+  static Color colorFourth = AppColors.green;
 }
-
-
-//https://api.themoviedb.org/3/movie/19404?api_key=2af521b95bc66d438a7085aa9e8a02db

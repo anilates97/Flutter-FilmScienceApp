@@ -4,21 +4,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:movie_app/model/movie_app_detail.dart';
 import 'package:movie_app/pages/fav_page.dart';
-import 'package:movie_app/pages/signup_page.dart';
-import 'package:movie_app/services/auth_service.dart';
-import 'package:movie_app/widget/nav_bar_widget.dart';
+import 'package:movie_app/theme/app_theme.dart';
+import 'package:movie_app/widget/cinematic_widgets.dart';
 
 import 'pages/home_page.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  runApp(ProviderScope(child: MyApp()));
+  runApp(const ProviderScope(child: AppBootstrap()));
 }
 
 class MyApp extends StatelessWidget {
-  FirebaseAuthService _authService = FirebaseAuthService();
-  MyApp({Key? key}) : super(key: key);
+  const MyApp({Key? key}) : super(key: key);
 
   // This widget is the root of your application.
   @override
@@ -30,16 +27,57 @@ class MyApp extends StatelessWidget {
               return CupertinoPageRoute(builder: (_) => HomePage());
             case '/FavPage':
               return CupertinoPageRoute(builder: (_) => FavPage(MovieDetail()));
+            default:
+              return CupertinoPageRoute(builder: (_) => const HomePage());
           }
         },
         debugShowCheckedModeBanner: false,
-        title: 'Flutter Demo',
-        theme: ThemeData(
-          primarySwatch: Colors.blue,
-        ),
-        home: HomePage());
-    // home: _authService.getCurrentUser() == null
-    //     ? HomePage()
-    //     : NavBarWidget());
+        title: 'Film Science',
+        theme: AppTheme.dark(),
+        home: const HomePage());
+  }
+}
+
+class AppBootstrap extends StatefulWidget {
+  const AppBootstrap({Key? key}) : super(key: key);
+
+  @override
+  State<AppBootstrap> createState() => _AppBootstrapState();
+}
+
+class _AppBootstrapState extends State<AppBootstrap> {
+  late Future<void> _initializeFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeFuture = Firebase.initializeApp();
+  }
+
+  void _retryInitialize() {
+    setState(() {
+      _initializeFuture = Firebase.initializeApp();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<void>(
+      future: _initializeFuture,
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return AppSplash(
+            errorMessage: "Film Science could not start. Please try again.",
+            onRetry: _retryInitialize,
+          );
+        }
+
+        if (snapshot.connectionState == ConnectionState.done) {
+          return const MyApp();
+        }
+
+        return const AppSplash();
+      },
+    );
   }
 }

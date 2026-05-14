@@ -1,101 +1,80 @@
 import 'dart:io';
 
-import 'package:dio/adapter.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
+import 'package:dio/io.dart';
 import 'package:movie_app/model/movie_app.dart';
 
+import '../api/tmdb_config.dart';
 import '../api/utils.dart';
 
 abstract class MovieRepository {
   Future<List<Result>> fetchMovies();
-  Future<List<Result>> nextMovies(sayac);
-  Future<List<Result>> previousMovies(sayac);
+  Future<List<Result>> nextMovies(int sayac);
+  Future<List<Result>> previousMovies(int sayac);
 }
 
 class APIMovieRepository implements MovieRepository {
   List<MovieModel> movies = [];
   static int sayac = 1;
 
+  Dio _createDio() {
+    final dio = Dio();
+    dio.httpClientAdapter = IOHttpClientAdapter(
+      createHttpClient: () => HttpClient()
+        ..badCertificateCallback =
+            (X509Certificate cert, String host, int port) => true,
+    );
+    return dio;
+  }
+
   @override
   Future<List<Result>> fetchMovies() async {
     try {
-      var url = MovieUtils.TOP_RATED + MovieUtils.PAGE;
-      print("Repo Metot Çalıştı URL: $url");
-      Dio dio = Dio();
-
-      //Eski telefonlar için
-      (dio.httpClientAdapter as DefaultHttpClientAdapter).onHttpClientCreate =
-          (HttpClient client) {
-        client.badCertificateCallback =
-            (X509Certificate cert, String host, int port) => true;
-        return client;
-      };
+      TmdbConfig.validate();
+      final url = MovieUtils.TOP_RATED + MovieUtils.PAGE + sayac.toString();
+      final dio = _createDio();
 
       final response = await dio.get(url);
-      debugPrint("REPO RESPONSE: ${response.data['results']}");
 
       MovieModel movieModel = MovieModel.fromJson(response.data);
-      return movieModel.results!;
-    } on DioError catch (e) {
-      print(e.toString());
-      throw Exception("Repository HATA:");
+      return movieModel.results ?? [];
+    } on DioException catch (e) {
+      final message = e.response?.data?['status_message'] ?? e.message;
+      throw Exception("Repository HATA: $message");
     }
   }
 
   @override
-  Future<List<Result>> nextMovies(sayac) async {
-    String url = "";
+  Future<List<Result>> nextMovies(int sayac) async {
     try {
-      url = MovieUtils.TOP_RATED + MovieUtils.PAGE + sayac.toString();
-
-      print("nextMovies Metot Çalıştı URL: $url");
-      Dio dio = Dio();
-
-      //Eski telefonlar için
-      (dio.httpClientAdapter as DefaultHttpClientAdapter).onHttpClientCreate =
-          (HttpClient client) {
-        client.badCertificateCallback =
-            (X509Certificate cert, String host, int port) => true;
-        return client;
-      };
+      TmdbConfig.validate();
+      final url = MovieUtils.TOP_RATED + MovieUtils.PAGE + sayac.toString();
+      final dio = _createDio();
 
       final response = await dio.get(url);
-      debugPrint("REPO RESPONSE: ${response.data['results']}");
 
       MovieModel movieModel = MovieModel.fromJson(response.data);
-      return movieModel.results!;
-    } on DioError catch (e) {
-      print(e.toString());
-      throw Exception("Repository HATA:");
+      return movieModel.results ?? [];
+    } on DioException catch (e) {
+      final message = e.response?.data?['status_message'] ?? e.message;
+      throw Exception("Repository HATA: $message");
     }
   }
 
   @override
-  Future<List<Result>> previousMovies(sayac) async {
-    String url = "";
+  Future<List<Result>> previousMovies(int sayac) async {
     try {
-      url = MovieUtils.TOP_RATED + MovieUtils.PAGE + sayac.toString();
-
-      print("nextMovies Metot Çalıştı URL: $url");
-      Dio dio = Dio();
-
-      //Eski telefonlar için
-      (dio.httpClientAdapter as DefaultHttpClientAdapter).onHttpClientCreate =
-          (HttpClient client) {
-        client.badCertificateCallback =
-            (X509Certificate cert, String host, int port) => true;
-        return client;
-      };
+      TmdbConfig.validate();
+      final url = MovieUtils.TOP_RATED + MovieUtils.PAGE + sayac.toString();
+      final dio = _createDio();
 
       final response = await dio.get(url);
-      debugPrint("REPO RESPONSE: ${response.data['results']}");
 
       MovieModel movieModel = MovieModel.fromJson(response.data);
-      return movieModel.results!;
-    } on DioError catch (e) {
-      print(e.toString());
-      throw Exception("Repository HATA:");
+      return movieModel.results ?? [];
+    } on DioException catch (e) {
+      final message = e.response?.data?['status_message'] ?? e.message;
+      throw Exception("Repository HATA: $message");
     }
   }
 }

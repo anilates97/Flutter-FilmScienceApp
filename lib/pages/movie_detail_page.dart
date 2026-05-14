@@ -1,27 +1,21 @@
 import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:cool_alert/cool_alert.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/src/foundation/key.dart';
-import 'package:flutter/src/widgets/framework.dart';
 import 'package:movie_app/api/utils.dart';
-import 'package:movie_app/model/movie_app.dart';
 import 'package:movie_app/model/movie_app_detail.dart';
 import 'package:movie_app/pages/fav_page.dart';
+import 'package:movie_app/pages/replies_page.dart';
 import 'package:movie_app/pages/signin_page.dart';
-
 import 'package:movie_app/services/api_services.dart';
 import 'package:movie_app/services/auth_service.dart';
 import 'package:movie_app/services/database_service.dart';
-import 'package:rflutter_alert/rflutter_alert.dart';
-import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import 'package:movie_app/theme/app_theme.dart';
+import 'package:movie_app/widget/cinematic_widgets.dart';
 
 import '../widget/build_fragment_widget.dart';
-import '../widget/containers_box_decoration_widget.dart';
 
 class MovieDetailPage extends StatefulWidget {
-  String movieID;
-  double width = 180;
+  final String movieID;
   MovieDetailPage({Key? key, required this.movieID}) : super(key: key);
 
   @override
@@ -29,356 +23,422 @@ class MovieDetailPage extends StatefulWidget {
 }
 
 class _MovieDetailPageState extends State<MovieDetailPage> {
-  IconData icon = Icons.favorite_outline;
   final APIMovieServices _services = APIMovieServices();
   final FirebaseAuthService _authService = FirebaseAuthService();
   final FirebaseDatabaseService _databaseService = FirebaseDatabaseService();
-  bool deger = false;
+  bool _favoriteBusy = false;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        body: SingleChildScrollView(
-      child: Container(
-        height: MediaQuery.of(context).size.height * 1.2,
-        width: double.infinity,
-        color: const Color(0xFF256D85),
-        child: FutureBuilder(
-          future: _services.movieDetails(widget.movieID),
-          builder: (context, AsyncSnapshot<MovieDetail> snapshot) {
-            if (snapshot.hasData) {
-              String str = genreList(snapshot.data!.genres!);
-              String strCoverImage =
-                  MovieUtils.IMAGE_PATH + snapshot.data!.posterPath!;
-              String movieBack =
-                  MovieUtils.IMAGE_PATH + snapshot.data!.backdropPath!;
-              return Column(
-                children: [
-                  Stack(
-                    children: [
-                      Container(
-                        height: MediaQuery.of(context).size.height / 5.1,
-                        decoration: BoxDecoration(
-                            image: DecorationImage(
-                                image: NetworkImage(movieBack),
-                                fit: BoxFit.fill)),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: IconButton(
-                            alignment: Alignment.topLeft,
-                            onPressed: () {
-                              Navigator.pop(context);
-                            },
-                            icon: const Icon(
-                              Icons.arrow_back_sharp,
-                              size: 35,
-                              color: Colors.white,
-                            )),
-                      ),
-                      Positioned(
-                          right: 25,
-                          top: 20,
-                          child: IconButton(
-                            icon: StreamBuilder<DocumentSnapshot>(
-                                stream: _databaseService.fetchMovieFromFirebase(
-                                    _authService.getCurrentUser()!,
-                                    snapshot.data!.id.toString()),
-                                builder: (context, snapFav) {
-                                  if (snapFav.data == null) {
-                                    print("snapshot fav: ${snapFav.data}");
-                                    // if (snapFav.data!.get('fav') == false) {}
-                                    // snapFav.data!.docs.forEach((element) {
-                                    //   if (element.get('id') == snapshot.data!.id) {
-                                    //     print(
-                                    //         "ELEMENT ID:${element.get('id')} + ID :: ${snapshot.data!.id}");
-                                    //     icon = Icons.favorite;
-                                    //   } else {
-                                    //     icon = Icons.favorite_outline;
-                                    //   }
-                                    // });
-                                    return const Icon(
-                                      Icons.favorite_outline,
-                                      size: 32,
-                                    );
-                                  } else {
-                                    if (snapFav.data!.exists) {
-                                      return const Icon(
-                                        Icons.favorite,
-                                        size: 32,
-                                      );
-                                    } else {
-                                      return const Icon(
-                                        Icons.favorite_outline,
-                                        size: 32,
-                                      );
-                                    }
-                                  }
-                                }),
-                            onPressed: () async {
-                              if (_authService.getCurrentUser() != null) {
-                                deger = await _databaseService
-                                    .isDuplicateUniqueName(snapshot.data!.id!,
-                                        _authService.getCurrentUser()!);
+    return CinematicScaffold(
+      child: FutureBuilder<MovieDetail>(
+        future: _services.movieDetails(widget.movieID),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return StateMessage(
+              icon: Icons.error_outline,
+              title: "Movie could not load",
+              message: snapshot.error.toString(),
+            );
+          }
+          if (!snapshot.hasData) {
+            return const LoadingPosterGrid();
+          }
 
-                                if (!deger) {
-                                  setState(() {
-                                    _databaseService.addMovieToDatabase(
-                                        snapshot.data!,
-                                        strCoverImage,
-                                        snapshot.data!.id.toString());
-                                    _databaseService.updateFavInfoFromFirebase(
-                                        _authService.getCurrentUser()!,
-                                        snapshot.data!.id!);
-                                    icon = Icons.favorite;
-                                    var snackBar = SnackBar(
-                                      duration:
-                                          const Duration(milliseconds: 1000),
-                                      elevation: 0,
-                                      behavior: SnackBarBehavior.floating,
-                                      backgroundColor: Colors.transparent,
-                                      content: AwesomeSnackbarContent(
-                                        color: MovieUtils.colorDark,
-                                        title: 'Başarılı',
-                                        message: 'Film favorilere eklendi!',
+          final movie = snapshot.data!;
+          final posterUrl = MovieUtils.imageUrl(movie.posterPath);
+          final backdropUrl = MovieUtils.imageUrl(movie.backdropPath);
 
-                                        /// change contentType to ContentType.success, ContentType.warning or ContentType.help for variants
-                                        contentType: ContentType.success,
-                                      ),
-                                    );
-
-                                    ScaffoldMessenger.of(context)
-                                        .showSnackBar(snackBar);
-
-                                    Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (_) =>
-                                                FavPage(snapshot.data)));
-                                  });
-                                } else {
-                                  _databaseService.deleteMovieFromFirebase(
-                                      _authService.getCurrentUser()!,
-                                      snapshot.data!.id!.toString());
-                                  var snackBar = SnackBar(
-                                    duration:
-                                        const Duration(milliseconds: 1000),
-                                    elevation: 0,
-                                    behavior: SnackBarBehavior.floating,
-                                    backgroundColor: Colors.transparent,
-                                    content: AwesomeSnackbarContent(
-                                      color: MovieUtils.colorDark,
-                                      title: 'Başarılı',
-                                      message: 'Film favorilerden kaldırıldı!',
-
-                                      /// change contentType to ContentType.success, ContentType.warning or ContentType.help for variants
-                                      contentType: ContentType.warning,
-                                    ),
-                                  );
-
-                                  ScaffoldMessenger.of(context)
-                                      .showSnackBar(snackBar);
-                                }
-                              } else {
-                                CoolAlert.show(
-                                  onConfirmBtnTap: () {
-                                    Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (_) => SignInPage()));
-                                  },
-                                  barrierDismissible: true,
-                                  animType: CoolAlertAnimType.slideInDown,
-                                  context: context,
-                                  type: CoolAlertType.warning,
-                                  text: "Lütfen önce giriş yapınız",
-                                );
-                              }
-                            },
-                            color: Colors.white,
-                          ))
-                    ],
+          return CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: _HeroHeader(
+                  movie: movie,
+                  backdropUrl: backdropUrl,
+                  posterUrl: posterUrl,
+                  favoriteIcon: _FavoriteIcon(
+                    userId: _authService.getCurrentUser(),
+                    movieId: movie.id?.toString(),
+                    databaseService: _databaseService,
                   ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  onBack: () => Navigator.pop(context),
+                  onFavorite: () => _toggleFavorite(movie, posterUrl ?? ""),
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 300,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(4),
-                          color: MovieUtils.colorLight,
-                        ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Center(
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              child: Text(
-                                snapshot.data!.title!,
-                                style: TextStyle(
-                                    color: MovieUtils.colorDark,
-                                    letterSpacing: 3),
-                              ),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          if (movie.releaseDate != null)
+                            MetaChip(
+                              label: movie.releaseDate!.year.toString(),
+                              icon: Icons.calendar_today_outlined,
                             ),
+                          MetaChip(
+                            label: (movie.voteAverage ?? 0).toStringAsFixed(1),
+                            icon: Icons.star_rounded,
                           ),
-                        ),
-                      )
-                    ],
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Container(
-                          width: MediaQuery.of(context).size.width - 50,
-                          height: 275,
-                          decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              color: MovieUtils.colorDark),
-                          child: Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: ListView(
-                              scrollDirection: Axis.vertical,
-                              children: [
-                                Text(
-                                  snapshot.data!.overview!,
-                                  style: TextStyle(
-                                    letterSpacing: 2,
-                                    color: MovieUtils.colorLight,
-                                  ),
-                                ),
-                              ],
-                            ),
+                          MetaChip(
+                            label: _country(movie),
+                            icon: Icons.public,
                           ),
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ContainerElements(
-                          width: widget.width,
-                          height: 30,
-                          textColor: MovieUtils.colorDark,
-                          containerColor: MovieUtils.colorLight,
-                          movieText: "Film Türü"),
-                      ContainerElements(
-                          width: widget.width,
-                          height: 30,
-                          textColor: MovieUtils.colorLight,
-                          containerColor: MovieUtils.colorDark,
-                          movieText: str),
-                    ],
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ContainerElements(
-                          width: widget.width,
-                          height: 30,
-                          textColor: MovieUtils.colorDark,
-                          containerColor: MovieUtils.colorLight,
-                          movieText: "Ülke"),
-                      ContainerElements(
-                          width: widget.width,
-                          height: 30,
-                          textColor: MovieUtils.colorLight,
-                          containerColor: MovieUtils.colorDark,
-                          movieText: snapshot.data!.productionCountries!.isEmpty
-                              ? "-"
-                              : snapshot.data!.productionCountries![0].name!),
-                    ],
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ContainerElements(
-                          width: widget.width,
-                          height: 30,
-                          textColor: MovieUtils.colorDark,
-                          containerColor: MovieUtils.colorLight,
-                          movieText: "Yapım"),
-                      ContainerElements(
-                          width: widget.width,
-                          height: 30,
-                          textColor: MovieUtils.colorLight,
-                          containerColor: MovieUtils.colorDark,
-                          movieText:
-                              snapshot.data!.releaseDate!.year.toString()),
-                    ],
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 16, horizontal: 6),
-                        child: Container(
-                          decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(4),
-                              color: MovieUtils.colorDark),
-                          child: Padding(
-                            padding: const EdgeInsets.all(8.0),
-                            child: Text(
-                              "Fragman",
-                              style: TextStyle(
-                                color: MovieUtils.colorLight,
-                                fontSize: 16,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ),
+                      const SizedBox(height: 18),
+                      Text("Overview", style: AppText.title),
+                      const SizedBox(height: 8),
+                      Text(
+                        movie.overview ?? "No overview available.",
+                        style: AppText.body.copyWith(color: AppColors.muted),
                       ),
-                      const SizedBox(
-                        width: 30,
+                      const SizedBox(height: 18),
+                      Text("Genres", style: AppText.title),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _genres(movie)
+                            .map((genre) => MetaChip(label: genre))
+                            .toList(),
                       ),
-                      Padding(
-                        padding: const EdgeInsets.all(4.0),
-                        child: ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(100)),
-                                primary: MovieUtils.colorDark),
-                            onPressed: () {
-                              Navigator.push(
+                      const SizedBox(height: 22),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                      builder: (_) => FavPage(snapshot.data)));
-                            },
-                            child: Icon(
-                              Icons.favorite,
-                              size: 32,
-                              color: MovieUtils.colorLight,
-                            )),
-                      )
+                                    builder: (_) => RepliesPage(widget.movieID),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.format_quote_rounded),
+                              label: const Text("Replikler"),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => FavPage(movie),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.favorite),
+                              label: const Text("Favoriler"),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppColors.text,
+                                minimumSize: const Size(48, 48),
+                                side: const BorderSide(color: AppColors.border),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        children: [
+                          Text("Fragman", style: AppText.title),
+                          const SizedBox(width: 8),
+                          const Icon(Icons.play_circle_fill,
+                              color: AppColors.gold, size: 22),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      BuildFragmentWidget(widget.movieID, movie.backdropPath),
+                      const SizedBox(height: 28),
                     ],
                   ),
-                  BuildFragmentWidget(
-                      widget.movieID, snapshot.data!.backdropPath!)
-                ],
-              );
-            } else {
-              return const Center(
-                child: CircularProgressIndicator(
-                  color: Colors.red,
                 ),
-              );
-            }
-          },
-        ),
+              ),
+            ],
+          );
+        },
       ),
-    ));
+    );
   }
 
-  String genreList(List<Genre> list) {
-    String str = "";
-    for (Genre genre in list) {
-      str = "$str ${genre.name!}";
+  Future<void> _toggleFavorite(MovieDetail movie, String posterUrl) async {
+    final userId = _authService.getCurrentUser();
+    if (userId == null) {
+      _showSignInDialog();
+      return;
     }
-    return str;
+    if (movie.id == null || _favoriteBusy) return;
+
+    setState(() => _favoriteBusy = true);
+    try {
+      final isFavorite =
+          await _databaseService.isDuplicateUniqueName(movie.id!, userId);
+      if (!mounted) return;
+
+      if (isFavorite) {
+        await _databaseService.deleteMovieFromFirebase(
+          userId,
+          movie.id.toString(),
+        );
+        _showFavoriteSnackBar(
+          "Basarili",
+          "Film favorilerden kaldirildi!",
+          ContentType.warning,
+        );
+      } else {
+        await _databaseService.addMovieToDatabase(
+          userId,
+          movie,
+          posterUrl,
+          movie.id.toString(),
+        );
+        _showFavoriteSnackBar(
+          "Basarili",
+          "Film favorilere eklendi!",
+          ContentType.success,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Favori islemi basarisiz: $e")),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _favoriteBusy = false);
+    }
+  }
+
+  void _showSignInDialog() {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text("Sign in required"),
+        content: const Text("Please sign in before adding favorites."),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text("Cancel"),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SignInPage()),
+              );
+            },
+            child: const Text("Sign in"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showFavoriteSnackBar(
+    String title,
+    String message,
+    ContentType contentType,
+  ) {
+    final snackBar = SnackBar(
+      duration: const Duration(milliseconds: 1000),
+      elevation: 0,
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: Colors.transparent,
+      content: AwesomeSnackbarContent(
+        color: AppColors.surfaceHigh,
+        title: title,
+        message: message,
+        contentType: contentType,
+      ),
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+  }
+
+  List<String> _genres(MovieDetail movie) {
+    final genres = movie.genres
+            ?.map((genre) => genre.name)
+            .whereType<String>()
+            .where((name) => name.trim().isNotEmpty)
+            .toList() ??
+        [];
+    return genres.isEmpty ? ["Unknown"] : genres;
+  }
+
+  String _country(MovieDetail movie) {
+    final countries = movie.productionCountries;
+    if (countries == null || countries.isEmpty) return "Unknown";
+    return countries.first.name ?? "Unknown";
+  }
+}
+
+class _HeroHeader extends StatelessWidget {
+  final MovieDetail movie;
+  final String? backdropUrl;
+  final String? posterUrl;
+  final Widget favoriteIcon;
+  final VoidCallback onBack;
+  final VoidCallback onFavorite;
+
+  const _HeroHeader({
+    required this.movie,
+    required this.backdropUrl,
+    required this.posterUrl,
+    required this.favoriteIcon,
+    required this.onBack,
+    required this.onFavorite,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 430,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          MovieImage(imageUrl: backdropUrl),
+          const DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Color(0x22000000),
+                  Color(0xAA0B1020),
+                  AppColors.black,
+                ],
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  GlassIconButton(
+                    icon: Icons.arrow_back,
+                    onPressed: onBack,
+                  ),
+                  const Spacer(),
+                  Material(
+                    color: AppColors.black.withValues(alpha: 0.48),
+                    shape: const CircleBorder(
+                      side: BorderSide(color: Color(0x44FFFFFF)),
+                    ),
+                    child: InkWell(
+                      customBorder: const CircleBorder(),
+                      onTap: onFavorite,
+                      child: SizedBox(
+                        width: 48,
+                        height: 48,
+                        child: Center(child: favoriteIcon),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            left: 20,
+            right: 20,
+            bottom: 4,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Container(
+                  width: 116,
+                  height: 174,
+                  clipBehavior: Clip.antiAlias,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(color: AppColors.border),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x99000000),
+                        blurRadius: 20,
+                        offset: Offset(0, 12),
+                      ),
+                    ],
+                  ),
+                  child: MovieImage(imageUrl: posterUrl),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: 4),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const MetaChip(label: "TMDB detail"),
+                        const SizedBox(height: 10),
+                        Text(
+                          movie.title ?? "Untitled",
+                          style: AppText.hero,
+                          maxLines: 3,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          movie.tagline?.isNotEmpty == true
+                              ? movie.tagline!
+                              : "A cinematic discovery from TMDB.",
+                          style: AppText.muted,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FavoriteIcon extends StatelessWidget {
+  final String? userId;
+  final String? movieId;
+  final FirebaseDatabaseService databaseService;
+
+  const _FavoriteIcon({
+    required this.userId,
+    required this.movieId,
+    required this.databaseService,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (userId == null || movieId == null) {
+      return const Icon(Icons.favorite_outline, size: 25);
+    }
+
+    return StreamBuilder<DocumentSnapshot>(
+      stream: databaseService.fetchMovieFromFirebase(userId!, movieId!),
+      builder: (context, snapshot) {
+        if (snapshot.data?.exists == true) {
+          return const Icon(Icons.favorite, color: AppColors.gold, size: 25);
+        }
+        return const Icon(Icons.favorite_outline, size: 25);
+      },
+    );
   }
 }
